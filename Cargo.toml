@@ -1,0 +1,7 @@
+[package]
+name = "eip-7702-playground"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alloy = { version = "0.11.0", features = ["full"] }
