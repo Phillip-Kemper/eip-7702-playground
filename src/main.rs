@@ -1,7 +1,7 @@
 use alloy::{
     eips::eip7702::Authorization,
     network::{EthereumWallet, TransactionBuilder, TransactionBuilder7702},
-    primitives::U256,
+    primitives::{address, Address, U256},
     providers::{Provider, ProviderBuilder},
     rpc::types::TransactionRequest,
     signers::{local::PrivateKeySigner, SignerSync},
@@ -9,7 +9,8 @@ use alloy::{
 };
 use dotenv::dotenv;
 use eyre::Result;
-use std::env;
+use std::{env, ops::Add};
+
 
 sol!(
     #[allow(missing_docs)]
@@ -46,7 +47,7 @@ async fn main() -> Result<()> {
         address: *contract.address(),
         nonce: provider
             .get_transaction_count(signer.clone().address())
-            .await?,
+            .await?+1,
     };
 
     let signed_authorization = authorization.clone().into_signed(
@@ -56,7 +57,7 @@ async fn main() -> Result<()> {
     );
 
     let tx = TransactionRequest::default()
-        .with_to(signer.clone().address())
+        .with_to(address!("0x0000000000000000000000000000000000000000"))
         .with_authorization_list(vec![signed_authorization]);
     let pending_tx = provider.send_transaction(tx).await?;
     println!("Pending transaction... {}", pending_tx.tx_hash());
@@ -67,5 +68,6 @@ async fn main() -> Result<()> {
         receipt.block_number.expect("Failed to get block number")
     );
 
+    assert!(receipt.status());
     Ok(())
 }
