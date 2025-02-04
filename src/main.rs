@@ -1,7 +1,7 @@
 use alloy::{
     eips::eip7702::Authorization,
     network::{EthereumWallet, TransactionBuilder, TransactionBuilder7702},
-    primitives::{address, Address, U256},
+    primitives::{address, U256},
     providers::{Provider, ProviderBuilder},
     rpc::types::TransactionRequest,
     signers::{local::PrivateKeySigner, SignerSync},
@@ -9,11 +9,12 @@ use alloy::{
 };
 use dotenv::dotenv;
 use eyre::Result;
-use std::{env, ops::Add};
+use std::env;
 
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
+    #[derive(Debug)]
     Counter,
     "foundry/out/Counter.sol/Counter.json"
 );
@@ -68,6 +69,22 @@ async fn main() -> Result<()> {
         receipt.block_number.expect("Failed to get block number")
     );
 
+    let instance = Counter::new(signer.clone().address(), provider.clone());
+    let mut count = instance.number().call().await?;
+    println!("Count on {:?}: {:?}", instance.address(), count);
+
+    let pending_increase = instance.setNumber(U256::from(7702)).send().await?;
+    let increase_receipt = pending_increase.get_receipt().await?;
+    println!(
+        "Transaction included in block {}",
+        increase_receipt
+            .block_number
+            .expect("Failed to get block number")
+    );
+
+    count = instance.number().call().await?;
+    println!("Count on {:?} now: {:?}", instance.address(), count);
+
     let eoa_bytecode = provider.get_code_at(signer.clone().address()).await?;
 
     println!("Bytecode: {eoa_bytecode:?}");
@@ -108,6 +125,9 @@ async fn main() -> Result<()> {
     let eoa_bytecode = provider.get_code_at(signer.clone().address()).await?;
 
     println!("Bytecode: {eoa_bytecode:?}");
+
+    count = instance.number().call().await?;
+    println!("Count on {:?} now: {:?}", instance.address(), count);
 
     assert!(receipt.status());
     Ok(())
