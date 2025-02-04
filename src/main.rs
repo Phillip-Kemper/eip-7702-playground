@@ -11,7 +11,6 @@ use dotenv::dotenv;
 use eyre::Result;
 use std::{env, ops::Add};
 
-
 sol!(
     #[allow(missing_docs)]
     #[sol(rpc)]
@@ -47,7 +46,8 @@ async fn main() -> Result<()> {
         address: *contract.address(),
         nonce: provider
             .get_transaction_count(signer.clone().address())
-            .await?+1,
+            .await?
+            + 1,
     };
 
     let signed_authorization = authorization.clone().into_signed(
@@ -67,6 +67,47 @@ async fn main() -> Result<()> {
         "Transaction included in block {}",
         receipt.block_number.expect("Failed to get block number")
     );
+
+    let eoa_bytecode = provider.get_code_at(signer.clone().address()).await?;
+
+    println!("Bytecode: {eoa_bytecode:?}");
+
+    let redeployed_contract = Counter::deploy(&provider).await?;
+    println!(
+        "Redeployed contract at address: {}",
+        redeployed_contract.address()
+    );
+
+    let reauthorization = Authorization {
+        chain_id: U256::from(chain_id),
+        // Reference to the contract that will be set as code for the authority.
+        address: *redeployed_contract.address(),
+        nonce: provider
+            .get_transaction_count(signer.clone().address())
+            .await?
+            + 1,
+    };
+    let signed_reauthorization = reauthorization.clone().into_signed(
+        signer
+            .clone()
+            .sign_hash_sync(&reauthorization.signature_hash())?,
+    );
+
+    let tx = TransactionRequest::default()
+        .with_to(address!("0x0000000000000000000000000000000000000000"))
+        .with_authorization_list(vec![signed_reauthorization]);
+    let pending_tx = provider.send_transaction(tx).await?;
+    println!("Pending transaction... {}", pending_tx.tx_hash());
+    let receipt = pending_tx.get_receipt().await?;
+
+    println!(
+        "Transaction included in block {}",
+        receipt.block_number.expect("Failed to get block number")
+    );
+
+    let eoa_bytecode = provider.get_code_at(signer.clone().address()).await?;
+
+    println!("Bytecode: {eoa_bytecode:?}");
 
     assert!(receipt.status());
     Ok(())
