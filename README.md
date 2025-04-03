@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository provides a playground for experimenting with EIP-7702, an Ethereum Improvement Proposal that allows Externally Owned Accounts (EOAs) to utilize smart contract code for a single transaction. This functionality is scheduled for inclusion in the upcoming **Pectra** upgrade in March 2025.
+This repository provides a playground for experimenting with EIP-7702, an Ethereum Improvement Proposal that allows Externally Owned Accounts (EOAs) to utilize smart contract code for a single transaction. This functionality is scheduled for inclusion in the upcoming **Pectra** upgrade in April 2025.
 
 ## Features
 
